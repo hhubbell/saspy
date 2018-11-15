@@ -197,6 +197,11 @@ winiomIWA  = {'java'    : 'java',
 #
 # This access method does not require a Java dependency.
 #
+# To improve data transfer performance with a remote provider, cacheing is
+# highly recommended. Setting `max_open_rows` to 256 and setting
+# `pagesize`/`cachesize` to 128 can more than triple speeds on large data
+# transfers.
+#
 # Valid Keys:
 #   iomhost     - Required for remote connections only. The Resolvable SAS
 #                 server dns name.
@@ -209,6 +214,14 @@ winiomIWA  = {'java'    : 'java',
 #   provider    - [REQUIRED] IOM provider. "sas.iomprovider" is recommended.
 #   encoding    - This is the python encoding value that matches the SAS
 #                 session encoding of the IOM server.
+#   max_open_rows   - [OPTIONAL] How many rows can be active at one time when
+#                     pulling data from the server. See SAS ADO performance
+#                     documentation for further details. If not set, the
+#                     default is 100.
+#   pagesize:   - [OPTIONAL] Provider page size. If not set, the default is 55.
+#   cachesize   - [OPTIONAL] Client cache size. Must be less then or equal to
+#                 `max_open_rows`. For best performance, set to half of
+#                 `max_open_rows`. If not set, the default is 1.
 #   omruser     - SAS user. This option is ignored on local connections.
 #   omrpw       - SAS password. This option is ignored on local connections.
 

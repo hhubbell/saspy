@@ -56,6 +56,9 @@ class SASConfigCOM(object):
         self.class_id = cfg.get('class_id')
         self.provider = cfg.get('provider')
         self.encoding = cfg.get('encoding', 'utf-8')
+        self.max_rows = cfg.get('max_open_rows', 100)
+        self.pagesize = cfg.get('pagesize', 55)
+        self.cachesize = cfg.get('cachesize', 1)
 
         self.output = outs.get('output', 'html5')
 
@@ -460,8 +463,20 @@ class SASSessionCOM(object):
         #   Cursor:     Forward Only
         #   Lock:       Read Only
         #   Command:    Table Direct
-        recordset.Open(TARGET, self.adodb, self.CURSOR_FORWARD,
-            self.LOCK_READONLY, self.CMD_TABLE_DIRECT)
+        #
+        # Transfer Options:
+        #   Maximum Open Rows:  Sets server-size cache
+        #   SAS Page Size:      Sets download buffer
+        #   Cache Size:         Sets record cache
+        recordset.ActiveConnection = self.adodb
+        recordset.Properties('Maximum Open Rows').Value = self.sascfg.max_rows
+        recordset.Properties('SAS Page Size').Value = self.sascfg.pagesize
+        recordset.CacheSize = self.sascfg.cachesize
+
+        recordset.Open(TARGET,
+            CursorType=self.CURSOR_FORWARD,
+            LockType=self.LOCK_READONLY,
+            Options=self.CMD_TABLE_DIRECT)
         recordset.MoveFirst()
 
         header = [x.Name for x in recordset.Fields]
