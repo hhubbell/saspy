@@ -40,6 +40,7 @@ import os
 import sys
 import datetime
 import getpass
+import itertools
 import tempfile
 
 from saspy.sasioiom      import SASsessionIOM
@@ -1014,16 +1015,18 @@ class SASsession():
         else:
             return self._io.sasdata2dataframe(table, libref, dsopts, method=method, **kwargs)
 
-    def _dsopts(self, dsopts):
+    def _dsopts(self, dsopts: dict):
         """
-        :param dsopts: a dictionary containing any of the following SAS data set options(where, drop, keep, obs, firstobs):
+        Convert a dictionary of dataset options in to a SAS options string.
+        :param dsopts [dict]: A dictionary containing any of the following SAS
+            data set options:
 
-            - where is a string or list of strings
-            - keep are strings or list of strings.
-            - drop are strings or list of strings.
-            - obs is a numbers - either string or int
-            - first obs is a numbers - either string or int
-            - format is a string or dictionary { var: format }
+                - where is a string or list of strings
+                - keep are strings or list of strings.
+                - drop are strings or list of strings.
+                - obs is a numbers - either string or int
+                - first obs is a numbers - either string or int
+                - format is a string or dictionary { var: format }
 
             .. code-block:: python
 
@@ -1034,59 +1037,68 @@ class SASsession():
                               'firstobs' : '12'
                               'format'  : {'money': 'dollar10', 'time': 'tod5.'}
                              }
-        :return: str
+        :return [str]:
         """
-        opts = ''
+        opts = []
         fmat = ''
-        if len(dsopts):
-            for key in dsopts:
-                if len(str(dsopts[key])):
-                    if key == 'where':
-                        if isinstance(dsopts[key], str):
-                            opts += 'where=(' + dsopts[key] + ') '
-                        elif isinstance(dsopts[key], list):
-                            opts += 'where=(' + " and ".join(dsopts[key]) + ') '
-                        else:
-                            raise TypeError("Bad key type. {} must be a str or list type".format(key))
 
-                    elif key == 'drop':
-                        opts += 'drop='
-                        if isinstance(dsopts[key], list):
-                            for var in dsopts[key]:
-                                opts += var + ' '
-                        else:
-                            opts += dsopts[key] + ' '
-                    elif key == 'keep':
-                        opts += 'keep='
-                        if isinstance(dsopts[key], list):
-                            for var in dsopts[key]:
-                                opts += var + ' '
-                        else:
-                            opts += dsopts[key] + ' '
-                    elif key == 'obs':
-                        opts += 'obs=' + str(dsopts[key]) + ' '
+        for key, value in dsopts.items():
+            # Dataset Option: WHERE
+            if key == 'where':
+                if isinstance(value, list):
+                    where_args = ' and '.join(value)
+                elif isinstance(value, str):
+                    where_args = value
+                else:
+                    raise TypeError("Bad value type. {} must be a str or list type".format(key))
 
-                    elif key == 'firstobs':
-                        opts += 'firstobs=' + str(dsopts[key]) + ' '
+                opts.append('where=({})'.format(where_args))
 
-                    elif key == 'format':
-                        if isinstance(dsopts[key], str):
-                            fmat = 'format ' + dsopts[key] + ';'
-                        elif isinstance(dsopts[key], dict):
-                            fmat = 'format '
-                            for k, v in dsopts[key].items():
-                                fmat += ' '.join((k, v)) + ' '
-                            fmat += ';'
-                        else:
-                            raise TypeError("Bad key type. {} must be a str or dict type".format(key))
+            # Dataset Option: DROP
+            elif key == 'drop':
+                if isinstance(value, list):
+                    drop_args = ' '.join(value)
+                else:
+                    drop_args = value
 
-            if len(opts):
-                opts = '(' + opts + ')'
-                if len(fmat) > 0:
-                    opts += ';\n\t' + fmat
-            elif len(fmat) > 0:
-                opts = ';\n\t' + fmat
-        return opts
+                opts.append('drop={}'.format(drop_args)
+
+            # Dataset Option: KEEP
+            elif key == 'keep':
+                if isinstance(value, list):
+                    keep_args = ' '.join(value)
+                else:
+                    keep_args = value
+
+                opts.append('keep={}'.format(keep_args))
+
+            # Dataset Option: OBS
+            elif key == 'obs':
+                opts.append('obs={}'.format(value))
+
+            # Dataset Option: FIRSTOBS
+            elif key == 'firstobs':
+                opts.append('firstobs={}'.format(value))
+
+            # Dataset Option: FORMAT
+            elif key == 'format':
+                if isinstance(value, dict):
+                    fmt_args = ' '.join(itertools.chain(*value.items()))
+                elif isinstance(value, str):
+                    fmt_args = value
+                else:
+                    raise TypeError("Bad value type. {} must be a str or dict type".format(key))
+
+                fmat = 'format {};'.format(fmt_args))
+
+        if opts and fmat:
+            res = '({});\n\t{}'.format(' '.join(opts), fmat)
+        elif fmat:
+            res = ';\n\t' + fmat
+        else:
+            res = ''
+
+        return res
 
     def _impopts(self, opts):
         """
