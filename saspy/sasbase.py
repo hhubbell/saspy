@@ -1100,14 +1100,16 @@ class SASsession():
 
         return res
 
-    def _impopts(self, opts):
+    def _impopts(self, opts: dict):
         """
-        :param opts: a dictionary containing any of the following Proc Import options(datarow, delimiter, getnames, guessingrows):
+        Convert a dictionary of import options in to a SAS options string.
+        :param opts [dict]: A dictionary containing any of the following Proc
+            Import options(datarow, delimiter, getnames, guessingrows):
 
-            - datarow      is a number
-            - delimiter    is a character
-            - getnames     is a boolean
-            - guessingrows is a numbers or the string 'MAX'
+                - datarow      is a number
+                - delimiter    is a character
+                - getnames     is a boolean
+                - guessingrows is a numbers or the string 'MAX'
 
             .. code-block:: python
 
@@ -1116,31 +1118,29 @@ class SASsession():
                               'getnames'    : True
                               'guessingrows': 20
                              }
-        :return: str
+        :return [str]:
         """
-        optstr = ''
+        sas_opts = []
 
-        if len(opts):
-            for key in opts:
-                if len(str(opts[key])):
-                    if key == 'datarow':
-                        optstr += 'datarow=' + str(opts[key]) + ';'
-                    elif key == 'delimiter':
-                        optstr += 'delimiter='
-                        optstr += "'" + '%02x' % ord(opts[key].encode(self._io.sascfg.encoding)) + "'x; "
-                    elif key == 'getnames':
-                        optstr += 'getnames='
-                        if opts[key]:
-                            optstr += 'YES; '
-                        else:
-                            optstr += 'NO; '
-                    elif key == 'guessingrows':
-                        optstr += 'guessingrows='
-                        if opts[key] == 'MAX':
-                            optstr += 'MAX; '
-                        else:
-                            optstr += str(opts[key]) + '; '
-        return optstr
+        for key, value in opts.items():
+            # Import Option: DATAROW
+            if key == 'datarow':
+                sas_opts.append('datarow={};'.format(value))
+
+            # Import Option: DELIMITER
+            elif key == 'delimiter':
+                delim = ord(value.encode(self._io.sascfg.encoding))
+                sas_opts.append("delimiter='{:2x}'x;".format(delim))
+
+            # Import Option: GETNAMES
+            elif key == 'getnames':
+                sas_opts.append('getnames={};'.format('YES' if value is True else 'NO'))
+
+            # Import Option: GUESSINGROWS
+            elif key == 'guessingrows':
+                sas_opts.append('guessingrows={};'.format(value))
+
+        return ' '.join(sas_opts)
 
     def _expopts(self, opts):
         """
@@ -1156,7 +1156,7 @@ class SASsession():
                              }
         :return: str
         """
-        optstr = ''
+        sas_opts = []
 
         if len(opts):
             for key in opts:
