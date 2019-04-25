@@ -1,5 +1,6 @@
 import unittest
 import saspy
+import collections
 import os
 import tempfile
 
@@ -156,3 +157,163 @@ class TestSASsessionObject(unittest.TestCase):
         util = self.sas.sasutil()
 
         self.assertIsInstance(util, saspy.sasutil.SASutil, msg="util = self.sas.sasutil() failed")
+
+    def test_sassession_dsopts_where_str(self):
+        """
+        Test method _dsopts properly supports `where` as a string.
+        """
+        EXPECTED = "where=(msrp < 20000 and make = 'Ford'"
+        OPTDICT = {'where': "msrp < 20000 and make = 'Ford'"}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_where_list(self):
+        """
+        Test method _dsopts properly supports `where` as a list.
+        """
+        EXPECTED = "where=(msrp < 20000 and make = 'Ford'"
+        OPTDICT = {'where': "msrp < 20000", "make = 'Ford'"}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_keep_str(self):
+        """
+        Test method _dsopts properly supports `keep` as a string.
+        """
+        EXPECTED = "keep=msrp enginsize cylinders horsepower"
+        OPTDICT = {'keep': 'msrp enginesize cylinders horsepower'}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_keep_list(self):
+        """
+        Test method _dsopts properly supports `keep` as a list.
+        """
+        EXPECTED = "keep=msrp enginsize cylinders horsepower"
+        OPTDICT = {'keep': ['msrp', 'enginesize', 'cylinders', 'horsepower']}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_drop_str(self):
+        """
+        Test method _dsopts properly supports `drop` as a string.
+        """
+        EXPECTED = "drop=msrp enginsize cylinders horsepower"
+        OPTDICT = {'drop': 'msrp enginesize cylinders horsepower'}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_drop_list(self):
+        """
+        Test method _dsopts properly supports `drop` as a list.
+        """
+        EXPECTED = "drop=msrp enginsize cylinders horsepower"
+        OPTDICT = {'drop': ['msrp', 'enginesize', 'cylinders', 'horsepower']}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_obs(self):
+        """
+        Test method _dsopts properly supports `obs` as an integer.
+        """
+        EXPECTED = "obs=10"
+        OPTDICT = {'obs': 10}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_firstobs(self):
+        """
+        Test method _dsopts properly supports `firstobs` as an integer.
+        """
+        EXPECTED = "firstobs=12"
+        OPTDICT = {'firstobs': 12}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_format_str(self):
+        """
+        Test method _dsopts properly supports `format` when it is the only
+        dict key and its type is a string.
+        """
+        EXPECTED = ";\n\tformat msrp dollar10.2;"
+        OPTDICT = {'format': 'msrp dollar10.2'}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_format_dict(self):
+        """
+        Test method _dsopts properly supports `format` when it is the only
+        dict key and its type is a dict.
+        """
+        EXPECTED = ";\n\tformat msrp dollar10.2;"
+        OPTDICT = {'format': {'msrp': 'dollar10.2'}}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_dsopts_format_combined(self):
+        """
+        Test method _dsopts properly supports `format` when it is combined
+        with other arguments.
+        """
+        EXPECTED = "where=(msrp < 20000) keep=msrp horsepower;\n\tformat msrp dollar10.2;"
+        # NOTE: Use OrderedDict here to support testing on Python < 3.6
+        OPTDICT = collections.OrderedDict([
+            ('where', 'msrp < 20000'),
+            ('keep', ['msrp', 'horsepower']),
+            ('format', {'msrp': 'dollar10.2'})])
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_impopts_datarow(self):
+        """
+        Test method _impopts properly supports `datarow`.
+        """
+        EXPECTED = "datarow=2;"
+        OPTDICT = {'datarow': 2}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_impopts_delimiter(self):
+        """
+        Test method _impopts properly supports `delimiter`.
+        """
+        EXPECTED = "delimiter='2c'x;"
+        OPTDICT = {'delimiter': ','}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_impopts_getnames(self):
+        """
+        Test method _impopts properly supports `getnames`.
+        """
+        EXPECTED = "getnames=YES;"
+        OPTDICT = {'getnames': True}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_impopts_guessingrows(self):
+        """
+        Test method _impopts properly supports `guessingrows`.
+        """
+        EXPECTED = "guessingrows=100;"
+        OPTDICT = {'guessingrows': 100}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_expopts_delimiter(self):
+        """
+        Test method _expopts properly supports `delimiter`.
+        """
+        EXPECTED = "delimiter='2c'x;"
+        OPTDICT = {'delimiter': ','}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
+
+    def test_sassession_expopts_putnames(self):
+        """
+        Test method _expopts properly supports `putnames`.
+        """
+        EXPECTED = "putnames=NO;"
+        OPTDICT = {'putnames': False}
+
+        self.assertEqual(EXPECTED, self.sas._dsopts(OPTDICT))
