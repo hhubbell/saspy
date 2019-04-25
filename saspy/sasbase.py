@@ -1144,33 +1144,33 @@ class SASsession():
 
     def _expopts(self, opts):
         """
-        :param opts: a dictionary containing any of the following Proc Export options(delimiter, putnames):
+        Convert a dictionary of import options in to a SAS options string.
+        :param opts [dict]: A dictionary containing any of the following Proc
+            Export options(delimiter, putnames):
 
-            - delimiter    is a character
-            - putnames     is a boolean
+                - delimiter    is a character
+                - putnames     is a boolean
 
             .. code-block:: python
 
                              {'delimiter'   : ',''
                               'putnames'    : True
                              }
-        :return: str
+        :return [str]:
         """
         sas_opts = []
 
-        if len(opts):
-            for key in opts:
-                if len(str(opts[key])):
-                    if key == 'delimiter':
-                        optstr += 'delimiter='
-                        optstr += "'" + '%02x' % ord(opts[key].encode(self._io.sascfg.encoding)) + "'x; "
-                    elif key == 'putnames':
-                        optstr += 'putnames='
-                        if opts[key]:
-                            optstr += 'YES; '
-                        else:
-                            optstr += 'NO; '
-        return optstr
+        for key, value in opts.items():
+            # Export Option: DELIMITER
+            if key == 'delimiter':
+                delim = ord(value.encode(self._io.sascfg.encoding))
+                sas_opts.append("delimiter='{:2x}'x;".format(delim))
+
+            # Export Option: PUTNAMES
+            elif key == 'putnames':
+                sas_opts.append('putnames={};'.format('YES' if value is True else 'NO'))
+
+        return ' '.format(sas_opts)
 
     def _tablepath(self, table: str, libref: str=None) -> str:
         """
